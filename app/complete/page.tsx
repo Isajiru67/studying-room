@@ -1,17 +1,13 @@
-"use client";
-
+import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import CompleteBody from "./CompleteBody";
 
 export default function CompletePage() {
-  const searchParams = useSearchParams();
-  const id = searchParams.get("id");
-
   return (
     <main style={{ padding: 24 }}>
-      <h2>完了</h2>
-      <p>内容の登録が完了しました。</p>
-      {id && <p>登録ID: {id}</p>}
+      <Suspense fallback={<p>読み込み中...</p>}>
+        <CompleteBody />
+      </Suspense>
 
       <div style={{ marginTop: 24 }}>
         <Link href="/input">続けて入力する</Link>
