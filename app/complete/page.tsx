@@ -1,11 +1,11 @@
-import Link from "next/link";
+"use client";
 
-export default async function CompletePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ id?: string }>;
-}) {
-  const { id } = await searchParams;
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+
+export default function CompletePage() {
+  const searchParams = useSearchParams();
+  const id = searchParams.get("id");
 
   return (
     <main style={{ padding: 24 }}>
