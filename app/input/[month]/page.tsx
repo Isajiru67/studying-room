@@ -10,7 +10,17 @@ type Slot = "am" | "pm";
 type Person = { id: string; name: string };
 type DateRow = { date: string; label: string };
 
-const slotLabel = (s: Slot) => (s === "am" ? "午前" : "午後");
+// answers[date] = { note, am.status, pm.status }
+type Answers = Record<
+  string,
+  {
+    note: string;
+    am: { status: Status };
+    pm: { status: Status };
+  }
+>;
+
+const markLabel = (st: Status) => (st === "yes" ? "○" : st === "maybe" ? "△" : "×");
 
 export default function InputPage() {
   const router = useRouter();
@@ -22,10 +32,7 @@ export default function InputPage() {
   const [people, setPeople] = useState<Person[]>([]);
   const [participantId, setParticipantId] = useState("");
 
-  // answers[date][slot] = {status, note}
-  const [answers, setAnswers] = useState<
-    Record<string, Record<Slot, { status: Status; note: string }>>
-  >({});
+  const [answers, setAnswers] = useState<Answers>({});
 
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
@@ -42,6 +49,7 @@ export default function InputPage() {
         .select("id,key,title")
         .eq("key", monthKey)
         .single();
+
       if (sErr) {
         setLoading(false);
         return setMsg(`月が見つかりません: ${sErr.message}`);
@@ -54,6 +62,7 @@ export default function InputPage() {
         .eq("schedule_id", s.id)
         .order("sort_order", { ascending: true })
         .order("date", { ascending: true });
+
       if (dErr) {
         setLoading(false);
         return setMsg(`日付取得エラー: ${dErr.message}`);
@@ -65,12 +74,13 @@ export default function InputPage() {
       }));
       setDates(dateRows);
 
-      // ✅ 未入力はデフォルト○（午前/午後ともに）
-      const init: Record<string, Record<Slot, { status: Status; note: string }>> = {};
+      // ✅ 未入力はデフォルト○（午前/午後とも）＋備考は空
+      const init: Answers = {};
       for (const r of dateRows) {
         init[r.date] = {
-          am: { status: "yes", note: "" },
-          pm: { status: "yes", note: "" },
+          note: "",
+          am: { status: "yes" },
+          pm: { status: "yes" },
         };
       }
       setAnswers(init);
@@ -79,6 +89,7 @@ export default function InputPage() {
         .from("participants")
         .select("id,name")
         .order("name", { ascending: true });
+
       if (pErr) {
         setLoading(false);
         return setMsg(`入力者取得エラー: ${pErr.message}`);
@@ -89,19 +100,20 @@ export default function InputPage() {
     })();
   }, [monthKey]);
 
-  // 入力者を選んだら既存回答を読み込み→上書き（なければデフォルト○）
+  // 入力者を選んだら既存回答を読み込み→上書き（なければデフォルト○のまま）
   useEffect(() => {
     if (!scheduleId || !participantId || !dates.length) return;
 
     (async () => {
       setMsg("");
 
-      // ベース（デフォルト○）を再作成（人を切り替えたときに前の人の値が残らない）
-      const base: Record<string, Record<Slot, { status: Status; note: string }>> = {};
+      // ベース（デフォルト○）を再作成（人切替で前の人の値が残らないように）
+      const base: Answers = {};
       for (const d of dates) {
         base[d.date] = {
-          am: { status: "yes", note: "" },
-          pm: { status: "yes", note: "" },
+          note: "",
+          am: { status: "yes" },
+          pm: { status: "yes" },
         };
       }
 
@@ -116,13 +128,18 @@ export default function InputPage() {
         return setMsg(`既存回答の取得に失敗しました: ${error.message}`);
       }
 
+      // 既存回答で上書き
       for (const row of existing ?? []) {
         if (!base[row.date]) continue;
+
         const slot = row.time_slot as Slot;
-        base[row.date][slot] = {
-          status: row.status as Status,
-          note: (row.note ?? "") as string,
-        };
+
+        // status は各slotごと
+        if (slot === "am") base[row.date].am.status = row.status as Status;
+        if (slot === "pm") base[row.date].pm.status = row.status as Status;
+
+        // note は「午前側に保存されているもの」を共通備考として採用
+        if (slot === "am") base[row.date].note = (row.note ?? "") as string;
       }
 
       setAnswers(base);
@@ -132,14 +149,20 @@ export default function InputPage() {
   const setStatus = (date: string, slot: Slot, status: Status) => {
     setAnswers((prev) => ({
       ...prev,
-      [date]: { ...prev[date], [slot]: { ...prev[date][slot], status } },
+      [date]: {
+        ...prev[date],
+        [slot]: { status },
+      },
     }));
   };
 
-  const setNote = (date: string, slot: Slot, note: string) => {
+  const setNote = (date: string, note: string) => {
     setAnswers((prev) => ({
       ...prev,
-      [date]: { ...prev[date], [slot]: { ...prev[date][slot], note } },
+      [date]: {
+        ...prev[date],
+        note,
+      },
     }));
   };
 
@@ -148,7 +171,8 @@ export default function InputPage() {
     if (!scheduleId) return;
     if (!participantId) return setMsg("入力者を選択してください。");
 
-    // デフォルト○なので、全件（date×slot）を upsert で確定保存
+    // 日付×slot を全件 upsert（デフォルト○も含めて確定保存）
+    // note は am 側にだけ入れる（pmはnull）
     const rows = dates.flatMap((d) =>
       (["am", "pm"] as Slot[]).map((slot) => ({
         schedule_id: scheduleId,
@@ -156,7 +180,7 @@ export default function InputPage() {
         date: d.date,
         time_slot: slot,
         status: answers[d.date]?.[slot]?.status ?? "yes",
-        note: answers[d.date]?.[slot]?.note?.trim() || null,
+        note: slot === "am" ? answers[d.date]?.note?.trim() || null : null,
       }))
     );
 
@@ -202,6 +226,7 @@ export default function InputPage() {
       </div>
 
       {msg && <p style={{ color: "crimson" }}>{msg}</p>}
+
       {loading ? (
         <p>読み込み中...</p>
       ) : (
@@ -209,7 +234,7 @@ export default function InputPage() {
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "160px 1fr 280px 1fr 280px",
+              gridTemplateColumns: "160px 1fr 1fr 420px",
               padding: 12,
               background: "#f7f7f7",
               gap: 12,
@@ -217,9 +242,8 @@ export default function InputPage() {
           >
             <strong>日付</strong>
             <strong>午前</strong>
-            <strong>午前 備考</strong>
             <strong>午後</strong>
-            <strong>午後 備考</strong>
+            <strong>備考（午前・午後共通）</strong>
           </div>
 
           {dates.map((d) => (
@@ -227,7 +251,7 @@ export default function InputPage() {
               key={d.date}
               style={{
                 display: "grid",
-                gridTemplateColumns: "160px 1fr 280px 1fr 280px",
+                gridTemplateColumns: "160px 1fr 1fr 420px",
                 padding: 12,
                 borderTop: "1px solid #eee",
                 gap: 12,
@@ -239,42 +263,38 @@ export default function InputPage() {
               {/* 午前 */}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 {(["yes", "maybe", "no"] as Status[]).map((st) => (
-                  <label key={`am-${st}`}>
+                  <label key={`${d.date}-am-${st}`}>
                     <input
                       type="radio"
                       name={`${d.date}-am`}
                       checked={answers[d.date]?.am?.status === st}
                       onChange={() => setStatus(d.date, "am", st)}
                     />{" "}
-                    {st === "yes" ? "○" : st === "maybe" ? "△" : "×"}
+                    {markLabel(st)}
                   </label>
                 ))}
               </div>
-              <input
-                value={answers[d.date]?.am?.note ?? ""}
-                onChange={(e) => setNote(d.date, "am", e.target.value)}
-                placeholder="例：午前は遅れる"
-                style={noteInput}
-              />
 
               {/* 午後 */}
               <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
                 {(["yes", "maybe", "no"] as Status[]).map((st) => (
-                  <label key={`pm-${st}`}>
+                  <label key={`${d.date}-pm-${st}`}>
                     <input
                       type="radio"
                       name={`${d.date}-pm`}
                       checked={answers[d.date]?.pm?.status === st}
                       onChange={() => setStatus(d.date, "pm", st)}
                     />{" "}
-                    {st === "yes" ? "○" : st === "maybe" ? "△" : "×"}
+                    {markLabel(st)}
                   </label>
                 ))}
               </div>
+
+              {/* 共通備考 */}
               <input
-                value={answers[d.date]?.pm?.note ?? ""}
-                onChange={(e) => setNote(d.date, "pm", e.target.value)}
-                placeholder="例：午後なら参加可能"
+                value={answers[d.date]?.note ?? ""}
+                onChange={(e) => setNote(d.date, e.target.value)}
+                placeholder="例：午後は途中参加 / どちらも遅れる など"
                 style={noteInput}
               />
             </div>
@@ -284,7 +304,8 @@ export default function InputPage() {
 
       <p style={{ marginTop: 10, color: "#666" }}>
         ※未入力は午前/午後ともにデフォルトで○表示。<br />
-        ※入力者を切り替えると、その人の既存入力が復元されます。
+        ※入力者を切り替えると、その人の既存入力が復元されます。<br />
+        ※備考は日付ごとに1つで、午前側（am）に保存します。
       </p>
     </main>
   );

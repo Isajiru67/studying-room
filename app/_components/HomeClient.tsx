@@ -175,94 +175,119 @@ export default function HomeClient() {
       </div>
 
       <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflow: "auto", background: "#fff" }}>
-        <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 1100 }}>
-          <thead>
-            <tr style={{ background: "#f7f7f7" }}>
-              <th style={th}>名前</th>
-              {dateKeys.flatMap((d) => {
-                const yesAm = counts[d.date]?.am?.yes ?? 0;
-                const yesPm = counts[d.date]?.pm?.yes ?? 0;
-                return [
-                  <th key={`${d.date}-am`} style={{ ...th, ...(isHighlight(yesAm) ? hi : {}) }}>
-                    {d.label} {slotLabel("am")}
-                  </th>,
-                  <th key={`${d.date}-pm`} style={{ ...th, ...(isHighlight(yesPm) ? hi : {}) }}>
-                    {d.label} {slotLabel("pm")}
-                  </th>,
-                ];
-              })}
-            </tr>
-          </thead>
+  <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 1100 }}>
+    <thead>
+      {/* 1段目：日付（午前午後をまとめる） */}
+      <tr style={{ background: "#f7f7f7" }}>
+        <th style={th} rowSpan={2}>名前</th>
 
-          <tbody>
-            {people.map((p) => (
-              <tr key={p.id}>
-                <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>{p.name}</td>
+        {dateKeys.map((d) => {
+          const yesAm = counts[d.date]?.am?.yes ?? 0;
+          const yesPm = counts[d.date]?.pm?.yes ?? 0;
+          // 日付単位で「どちらかが3以上なら」日付ヘッダもハイライト（好み）
+          const dateHi = isHighlight(yesAm) || isHighlight(yesPm);
 
-                {dateKeys.flatMap((d) => {
-                  const cellAm = matrix[p.id]?.[d.date]?.am;
-                  const cellPm = matrix[p.id]?.[d.date]?.pm;
+          return (
+            <th
+              key={d.date}
+              style={{ ...th, ...(dateHi ? hi : {}) }}
+              colSpan={2}
+            >
+              {d.label}
+            </th>
+          );
+        })}
+      </tr>
 
-                  const yesAm = counts[d.date]?.am?.yes ?? 0;
-                  const yesPm = counts[d.date]?.pm?.yes ?? 0;
+      {/* 2段目：午前/午後 */}
+      <tr style={{ background: "#f7f7f7" }}>
+        {dateKeys.flatMap((d) => {
+          const yesAm = counts[d.date]?.am?.yes ?? 0;
+          const yesPm = counts[d.date]?.pm?.yes ?? 0;
+          return [
+            <th key={`${d.date}-am`} style={{ ...th, ...(isHighlight(yesAm) ? hi : {}) }}>
+              午前
+            </th>,
+            <th key={`${d.date}-pm`} style={{ ...th, ...(isHighlight(yesPm) ? hi : {}) }}>
+              午後
+            </th>,
+          ];
+        })}
+      </tr>
+    </thead>
 
-                  return [
-                    <td
-                      key={`${p.id}-${d.date}-am`}
-                      style={{ ...td, ...(isHighlight(yesAm) ? hi : {}) }}
-                      title={cellAm?.note ?? ""}
-                    >
-                      {mark(cellAm?.status)}
-                    </td>,
-                    <td
-                      key={`${p.id}-${d.date}-pm`}
-                      style={{ ...td, ...(isHighlight(yesPm) ? hi : {}) }}
-                      title={cellPm?.note ?? ""}
-                    >
-                      {mark(cellPm?.status)}
-                    </td>,
-                  ];
-                })}
-              </tr>
-            ))}
-          </tbody>
+    <tbody>
+      {people.map((p) => (
+        <tr key={p.id}>
+          <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>{p.name}</td>
 
-          <tfoot>
-            <tr style={{ background: "#fafafa" }}>
-              <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>○人数</td>
-              {dateKeys.flatMap((d) => {
-                const yesAm = counts[d.date]?.am?.yes ?? 0;
-                const yesPm = counts[d.date]?.pm?.yes ?? 0;
-                return [
-                  <td key={`${d.date}-am-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesAm) ? hi : {}) }}>
-                    {yesAm}
-                  </td>,
-                  <td key={`${d.date}-pm-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesPm) ? hi : {}) }}>
-                    {yesPm}
-                  </td>,
-                ];
-              })}
-            </tr>
+          {dateKeys.flatMap((d) => {
+            const cellAm = matrix[p.id]?.[d.date]?.am;
+            const cellPm = matrix[p.id]?.[d.date]?.pm;
 
-            <tr style={{ background: "#fafafa" }}>
-              <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>△人数</td>
-              {dateKeys.flatMap((d) => {
-                const yesAm = counts[d.date]?.am?.yes ?? 0;
-                const yesPm = counts[d.date]?.pm?.yes ?? 0;
-                const maybeAm = counts[d.date]?.am?.maybe ?? 0;
-                const maybePm = counts[d.date]?.pm?.maybe ?? 0;
-                return [
-                  <td key={`${d.date}-am-maybe`} style={{ ...td, ...(isHighlight(yesAm) ? hi : {}) }}>
-                    {maybeAm}
-                  </td>,
-                  <td key={`${d.date}-pm-maybe`} style={{ ...td, ...(isHighlight(yesPm) ? hi : {}) }}>
-                    {maybePm}
-                  </td>,
-                ];
-              })}
-            </tr>
-          </tfoot>
-        </table>
+            const yesAm = counts[d.date]?.am?.yes ?? 0;
+            const yesPm = counts[d.date]?.pm?.yes ?? 0;
+
+            return [
+              <td
+                key={`${p.id}-${d.date}-am`}
+                style={{ ...td, ...(isHighlight(yesAm) ? hi : {}) }}
+                title={cellAm?.note ?? ""}
+              >
+                {mark(cellAm?.status)}
+              </td>,
+              <td
+                key={`${p.id}-${d.date}-pm`}
+                style={{ ...td, ...(isHighlight(yesPm) ? hi : {}) }}
+                title={cellPm?.note ?? ""}
+              >
+                {mark(cellPm?.status)}
+              </td>,
+            ];
+          })}
+        </tr>
+      ))}
+    </tbody>
+
+    <tfoot>
+      <tr style={{ background: "#fafafa" }}>
+        <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>○人数</td>
+        {dateKeys.flatMap((d) => {
+          const yesAm = counts[d.date]?.am?.yes ?? 0;
+          const yesPm = counts[d.date]?.pm?.yes ?? 0;
+          return [
+            <td key={`${d.date}-am-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesAm) ? hi : {}) }}>
+              {yesAm}
+            </td>,
+            <td key={`${d.date}-pm-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesPm) ? hi : {}) }}>
+              {yesPm}
+            </td>,
+          ];
+        })}
+      </tr>
+
+      <tr style={{ background: "#fafafa" }}>
+        <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>△人数</td>
+        {dateKeys.flatMap((d) => {
+          const yesAm = counts[d.date]?.am?.yes ?? 0;
+          const yesPm = counts[d.date]?.pm?.yes ?? 0;
+          const maybeAm = counts[d.date]?.am?.maybe ?? 0;
+          const maybePm = counts[d.date]?.pm?.maybe ?? 0;
+          return [
+            <td key={`${d.date}-am-maybe`} style={{ ...td, ...(isHighlight(yesAm) ? hi : {}) }}>
+              {maybeAm}
+            </td>,
+            <td key={`${d.date}-pm-maybe`} style={{ ...td, ...(isHighlight(yesPm) ? hi : {}) }}>
+              {maybePm}
+            </td>,
+          ];
+        })}
+      </tr>
+    </tfoot>
+  </table>
+</div>
+<div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflow: "auto", background: "#fff" }}>
+        
       </div>
 
       <p style={{ marginTop: 10, color: "#666" }}>
