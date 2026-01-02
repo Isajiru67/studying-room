@@ -42,12 +42,12 @@ export default function ParticipantsPage() {
 
   return (
     <main style={{ padding: 24, maxWidth: 700, margin: "0 auto" }}>
-      <h1 style={{ margin: "8px 0 14px" }}>入力者マスタ</h1>
+      <h1 style={{ margin: "8px 0 14px" }}>参加者の新規登録・削除</h1>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="名前を追加" style={{ flex: 1, padding: "10px 12px", border: "1px solid #ddd", borderRadius: 10 }} />
         <button onClick={add} style={btn}>追加</button>
-        <button onClick={() => router.push("/")} style={btn}>集計へ戻る</button>
+        <button onClick={() => router.push("/")} style={btn}>戻る</button>
       </div>
 
       {msg && <p style={{ color: "crimson" }}>{msg}</p>}
