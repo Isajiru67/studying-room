@@ -197,9 +197,23 @@ export default function InputPage() {
       <style jsx>{`
         .desktopOnly { display: none; }
         .mobileOnly { display: block; }
+
+    
+
+        /* スマホ用 保存バー */
+  .mobileSaveBar {
+    display: block;
+    position: sticky;
+    bottom: 0;
+    padding: 10px 12px env(safe-area-inset-bottom);
+    background: rgba(255, 255, 255, 0.95);
+    border-top: 1px solid #eee;
+    margin-top: 16px;
+  }
         @media (min-width: 768px) {
           .desktopOnly { display: block; }
           .mobileOnly { display: none; }
+          .mobileSaveBar { display: none; }
         }
       `}</style>
 
@@ -362,6 +376,26 @@ export default function InputPage() {
           </p>
         </>
       )}
+      {/* スマホ用：下固定 保存バー */}
+<div className="mobileSaveBar">
+  <button
+    onClick={onSave}
+    disabled={saving || loading || !participantId}
+    style={{
+      width: "100%",
+      padding: "14px 16px",
+      borderRadius: 14,
+      border: "1px solid #111",
+      background: "#111",
+      color: "#fff",
+      fontSize: 16,
+      fontWeight: 700,
+    }}
+  >
+    {saving ? "保存中..." : "保存して集計へ"}
+  </button>
+</div>
+
     </main>
   );
 }
