@@ -10,11 +10,10 @@ type Slot = "am" | "pm";
 type Person = { id: string; name: string };
 type DateRow = { date: string; label: string };
 
-// answers[date] = { note, am.status, pm.status }
 type Answers = Record<
   string,
   {
-    note: string;
+    note: string; // 日付ごとに1つ（午前/午後共通）
     am: { status: Status };
     pm: { status: Status };
   }
@@ -74,7 +73,7 @@ export default function InputPage() {
       }));
       setDates(dateRows);
 
-      // ✅ 未入力はデフォルト○（午前/午後とも）＋備考は空
+      // ✅ ベース（未入力はデフォルト○、備考空）
       const init: Answers = {};
       for (const r of dateRows) {
         init[r.date] = {
@@ -100,7 +99,7 @@ export default function InputPage() {
     })();
   }, [monthKey]);
 
-  // 入力者を選んだら既存回答を読み込み→上書き（なければデフォルト○のまま）
+  // 入力者を選んだら既存回答を読み込み→上書き（なければデフォルト○）
   useEffect(() => {
     if (!scheduleId || !participantId || !dates.length) return;
 
@@ -193,14 +192,28 @@ export default function InputPage() {
   };
 
   return (
-    <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
+    <main style={{ padding: 16, maxWidth: 1100, margin: "0 auto" }}>
+      {/* 表示切り替え用CSS（PCは表、スマホはカード） */}
+      <style jsx>{`
+        .desktopOnly { display: none; }
+        .mobileOnly { display: block; }
+        @media (min-width: 768px) {
+          .desktopOnly { display: block; }
+          .mobileOnly { display: none; }
+        }
+      `}</style>
+
       <h1 style={{ margin: "6px 0 12px" }}>{title}</h1>
 
       {/* 上部コントロール */}
       <div style={topBar}>
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
           入力者：
-          <select value={participantId} onChange={(e) => setParticipantId(e.target.value)} disabled={loading}>
+          <select
+            value={participantId}
+            onChange={(e) => setParticipantId(e.target.value)}
+            disabled={loading}
+          >
             <option value="">選択してください</option>
             {people.map((p) => (
               <option key={p.id} value={p.id}>
@@ -210,79 +223,165 @@ export default function InputPage() {
           </select>
         </label>
 
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={onSave} disabled={saving || loading || !participantId} style={primaryBtn}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <button
+            onClick={onSave}
+            disabled={saving || loading || !participantId}
+            style={primaryBtn}
+          >
             {saving ? "保存中..." : "保存して集計へ"}
           </button>
-
-          <button onClick={() => router.push(`/?month=${encodeURIComponent(monthKey)}`)} style={btn}>
+          <button
+            onClick={() => router.push(`/?month=${encodeURIComponent(monthKey)}`)}
+            style={btn}
+          >
             戻る
           </button>
         </div>
       </div>
 
       {msg && <p style={{ color: "crimson", marginTop: 10 }}>{msg}</p>}
+      {loading && <p style={{ marginTop: 10 }}>読み込み中...</p>}
 
-      {/* 日付カード一覧（スマホ最適） */}
-      <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
-        {dates.map((d) => (
-          <section key={d.date} style={card}>
-            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
-              <strong style={{ fontSize: 16 }}>{d.label}</strong>
-              <span style={{ color: "#777", fontSize: 12 }}>{d.date}</span>
+      {/* 入力者未選択時：ここで止める */}
+      {!loading && !participantId && (
+        <div style={hintBox}>
+          <strong>最初に「入力者」を選択してください</strong>
+          <div style={{ marginTop: 6, color: "#666", fontSize: 13 }}>
+            入力者を選ぶと、その人の過去入力が読み込まれて編集できるようになります。
+          </div>
+        </div>
+      )}
+
+      {/* 入力者選択後のみ、日付入力UIを表示 */}
+      {participantId && !loading && (
+        <>
+          {/* ===== PC（元の表形式） ===== */}
+          <div className="desktopOnly" style={{ marginTop: 14 }}>
+            <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflowX: "auto", background: "#fff" }}>
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "160px 1fr 1fr 420px",
+                  padding: 12,
+                  background: "#f7f7f7",
+                  gap: 12,
+                  minWidth: 980,
+                }}
+              >
+                <strong>日付</strong>
+                <strong>午前</strong>
+                <strong>午後</strong>
+                <strong>備考（午前・午後共通）</strong>
+              </div>
+
+              {dates.map((d) => (
+                <div
+                  key={d.date}
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "160px 1fr 1fr 420px",
+                    padding: 12,
+                    borderTop: "1px solid #eee",
+                    gap: 12,
+                    alignItems: "center",
+                    minWidth: 980,
+                  }}
+                >
+                  <div>{d.label}</div>
+
+                  <StatusButtons
+                    value={answers[d.date]?.am?.status ?? "yes"}
+                    onChange={(v) => setStatus(d.date, "am", v)}
+                    size="md"
+                  />
+
+                  <StatusButtons
+                    value={answers[d.date]?.pm?.status ?? "yes"}
+                    onChange={(v) => setStatus(d.date, "pm", v)}
+                    size="md"
+                  />
+
+                  <input
+                    value={answers[d.date]?.note ?? ""}
+                    onChange={(e) => setNote(d.date, e.target.value)}
+                    placeholder="例：午後は途中参加 / どちらも遅れる など"
+                    style={noteInput}
+                  />
+                </div>
+              ))}
             </div>
+          </div>
 
-            <div style={{ marginTop: 10 }}>
-              <div style={slotRowHeader}>午前</div>
-              <StatusButtons
-                value={answers[d.date]?.am?.status ?? "yes"}
-                onChange={(v) => setStatus(d.date, "am", v)}
-              />
+          {/* ===== スマホ（カード形式） ===== */}
+          <div className="mobileOnly" style={{ marginTop: 14 }}>
+            <div style={{ display: "grid", gap: 12 }}>
+              {dates.map((d) => (
+                <section key={d.date} style={card}>
+                  <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
+                    <strong style={{ fontSize: 16 }}>{d.label}</strong>
+                    <span style={{ color: "#777", fontSize: 12 }}>{d.date}</span>
+                  </div>
+
+                  <div style={{ marginTop: 10 }}>
+                    <div style={slotLabel}>午前</div>
+                    <StatusButtons
+                      value={answers[d.date]?.am?.status ?? "yes"}
+                      onChange={(v) => setStatus(d.date, "am", v)}
+                      size="lg"
+                    />
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={slotLabel}>午後</div>
+                    <StatusButtons
+                      value={answers[d.date]?.pm?.status ?? "yes"}
+                      onChange={(v) => setStatus(d.date, "pm", v)}
+                      size="lg"
+                    />
+                  </div>
+
+                  <div style={{ marginTop: 12 }}>
+                    <div style={slotLabel}>備考（共通）</div>
+                    <textarea
+                      value={answers[d.date]?.note ?? ""}
+                      onChange={(e) => setNote(d.date, e.target.value)}
+                      placeholder="例：午後は途中参加 / どちらも遅れる など"
+                      style={noteArea}
+                      rows={2}
+                    />
+                  </div>
+                </section>
+              ))}
             </div>
+          </div>
 
-            <div style={{ marginTop: 10 }}>
-              <div style={slotRowHeader}>午後</div>
-              <StatusButtons
-                value={answers[d.date]?.pm?.status ?? "yes"}
-                onChange={(v) => setStatus(d.date, "pm", v)}
-              />
-            </div>
-
-            <div style={{ marginTop: 12 }}>
-              <div style={slotRowHeader}>備考（午前・午後共通）</div>
-              <textarea
-                value={answers[d.date]?.note ?? ""}
-                onChange={(e) => setNote(d.date, e.target.value)}
-                placeholder="例：午後は途中参加 / どちらも遅れる など"
-                style={noteArea}
-                rows={2}
-              />
-            </div>
-          </section>
-        ))}
-      </div>
-
-      <p style={{ marginTop: 14, color: "#666", fontSize: 13 }}>
-        ※未入力は午前/午後ともにデフォルトで○表示。<br />
-        ※備考は日付ごとに1つで、午前側（am）に保存します。
-      </p>
+          <p style={{ marginTop: 14, color: "#666", fontSize: 13 }}>
+            ※未入力は午前/午後ともにデフォルトで○表示。<br />
+            ※備考は日付ごとに1つで、午前側（am）に保存します。
+          </p>
+        </>
+      )}
     </main>
   );
 }
 
-/** でかボタン（スマホ向け） */
 function StatusButtons({
   value,
   onChange,
+  size = "lg",
 }: {
   value: Status;
   onChange: (v: Status) => void;
+  size?: "md" | "lg";
 }) {
   const items: { v: Status; label: string; hint: string }[] = [
     { v: "yes", label: "○", hint: "参加" },
     { v: "maybe", label: "△", hint: "未定" },
     { v: "no", label: "×", hint: "不参加" },
   ];
+
+  const btnStyle = size === "lg" ? segBtnLg : segBtnMd;
 
   return (
     <div style={segWrap} role="group" aria-label="出欠選択">
@@ -295,11 +394,13 @@ function StatusButtons({
             onClick={() => onChange(it.v)}
             aria-pressed={active}
             style={{
-              ...segBtn,
+              ...btnStyle,
               ...(active ? segBtnActive : {}),
             }}
           >
-            <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{it.label}</div>
+            <div style={{ fontSize: size === "lg" ? 20 : 18, fontWeight: 800, lineHeight: 1 }}>
+              {it.label}
+            </div>
             <div style={{ fontSize: 12, color: active ? "#111" : "#666", marginTop: 4 }}>{it.hint}</div>
           </button>
         );
@@ -308,6 +409,7 @@ function StatusButtons({
   );
 }
 
+/* styles */
 const topBar: React.CSSProperties = {
   display: "flex",
   gap: 10,
@@ -335,6 +437,14 @@ const primaryBtn: React.CSSProperties = {
   fontWeight: 700,
 };
 
+const hintBox: React.CSSProperties = {
+  marginTop: 14,
+  padding: "12px 14px",
+  border: "1px solid #e5e5e5",
+  borderRadius: 12,
+  background: "#fff",
+};
+
 const card: React.CSSProperties = {
   border: "1px solid #e5e5e5",
   borderRadius: 14,
@@ -342,7 +452,7 @@ const card: React.CSSProperties = {
   padding: 12,
 };
 
-const slotRowHeader: React.CSSProperties = {
+const slotLabel: React.CSSProperties = {
   fontSize: 12,
   color: "#666",
   marginBottom: 6,
@@ -353,11 +463,22 @@ const segWrap: React.CSSProperties = {
   gap: 10,
 };
 
-const segBtn: React.CSSProperties = {
+const segBtnLg: React.CSSProperties = {
   flex: 1,
-  minHeight: 52,              // ✅ タップしやすい高さ
+  minHeight: 56, // スマホで押しやすい
   padding: "10px 0",
   borderRadius: 14,
+  border: "1px solid #ddd",
+  background: "#fff",
+  cursor: "pointer",
+  touchAction: "manipulation",
+};
+
+const segBtnMd: React.CSSProperties = {
+  flex: 1,
+  minHeight: 44,
+  padding: "8px 0",
+  borderRadius: 12,
   border: "1px solid #ddd",
   background: "#fff",
   cursor: "pointer",
@@ -367,6 +488,13 @@ const segBtn: React.CSSProperties = {
 const segBtnActive: React.CSSProperties = {
   border: "2px solid #111",
   background: "#f3f3f3",
+};
+
+const noteInput: React.CSSProperties = {
+  padding: "10px 12px",
+  border: "1px solid #ddd",
+  borderRadius: 12,
+  width: "100%",
 };
 
 const noteArea: React.CSSProperties = {
