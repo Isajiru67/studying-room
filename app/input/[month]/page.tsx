@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -20,8 +20,6 @@ type Answers = Record<
   }
 >;
 
-const markLabel = (st: Status) => (st === "yes" ? "○" : st === "maybe" ? "△" : "×");
-
 export default function InputPage() {
   const router = useRouter();
   const params = useParams<{ month: string }>();
@@ -37,6 +35,8 @@ export default function InputPage() {
   const [msg, setMsg] = useState("");
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  const title = useMemo(() => `入力（${monthKey}）`, [monthKey]);
 
   // 初期ロード：schedule / dates / people
   useEffect(() => {
@@ -107,7 +107,7 @@ export default function InputPage() {
     (async () => {
       setMsg("");
 
-      // ベース（デフォルト○）を再作成（人切替で前の人の値が残らないように）
+      // ベース（デフォルト○）を再作成（人切替で前の人の値が残らない）
       const base: Answers = {};
       for (const d of dates) {
         base[d.date] = {
@@ -128,18 +128,16 @@ export default function InputPage() {
         return setMsg(`既存回答の取得に失敗しました: ${error.message}`);
       }
 
-      // 既存回答で上書き
       for (const row of existing ?? []) {
         if (!base[row.date]) continue;
-
         const slot = row.time_slot as Slot;
 
-        // status は各slotごと
-        if (slot === "am") base[row.date].am.status = row.status as Status;
-        if (slot === "pm") base[row.date].pm.status = row.status as Status;
-
-        // note は「午前側に保存されているもの」を共通備考として採用
-        if (slot === "am") base[row.date].note = (row.note ?? "") as string;
+        if (slot === "am") {
+          base[row.date].am.status = row.status as Status;
+          base[row.date].note = (row.note ?? "") as string; // 共通備考はam側
+        } else {
+          base[row.date].pm.status = row.status as Status;
+        }
       }
 
       setAnswers(base);
@@ -159,10 +157,7 @@ export default function InputPage() {
   const setNote = (date: string, note: string) => {
     setAnswers((prev) => ({
       ...prev,
-      [date]: {
-        ...prev[date],
-        note,
-      },
+      [date]: { ...prev[date], note },
     }));
   };
 
@@ -171,8 +166,6 @@ export default function InputPage() {
     if (!scheduleId) return;
     if (!participantId) return setMsg("入力者を選択してください。");
 
-    // 日付×slot を全件 upsert（デフォルト○も含めて確定保存）
-    // note は am 側にだけ入れる（pmはnull）
     const rows = dates.flatMap((d) =>
       (["am", "pm"] as Slot[]).map((slot) => ({
         schedule_id: scheduleId,
@@ -200,10 +193,11 @@ export default function InputPage() {
   };
 
   return (
-    <main style={{ padding: 24, maxWidth: 1100, margin: "0 auto" }}>
-      <h1 style={{ margin: "8px 0 14px" }}>入力（{monthKey}）</h1>
+    <main style={{ padding: 16, maxWidth: 980, margin: "0 auto" }}>
+      <h1 style={{ margin: "6px 0 12px" }}>{title}</h1>
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
+      {/* 上部コントロール */}
+      <div style={topBar}>
         <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
           入力者：
           <select value={participantId} onChange={(e) => setParticipantId(e.target.value)} disabled={loading}>
@@ -216,109 +210,78 @@ export default function InputPage() {
           </select>
         </label>
 
-        <button onClick={onSave} disabled={saving || loading || !participantId} style={btn}>
-          {saving ? "保存中..." : "保存して集計へ"}
-        </button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={onSave} disabled={saving || loading || !participantId} style={primaryBtn}>
+            {saving ? "保存中..." : "保存して集計へ"}
+          </button>
 
-        <button onClick={() => router.push(`/?month=${encodeURIComponent(monthKey)}`)} style={btn}>
-          戻る
-        </button>
+          <button onClick={() => router.push(`/?month=${encodeURIComponent(monthKey)}`)} style={btn}>
+            戻る
+          </button>
+        </div>
       </div>
 
-      {msg && <p style={{ color: "crimson" }}>{msg}</p>}
+      {msg && <p style={{ color: "crimson", marginTop: 10 }}>{msg}</p>}
 
-      {loading ? (
-        <p>読み込み中...</p>
-      ) : (
-        <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflow: "hidden", background: "#fff" }}>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "160px 1fr 1fr 420px",
-              padding: 12,
-              background: "#f7f7f7",
-              gap: 12,
-            }}
-          >
-            <strong>日付</strong>
-            <strong>午前</strong>
-            <strong>午後</strong>
-            <strong>備考</strong>
-          </div>
+      {/* 日付カード一覧（スマホ最適） */}
+      <div style={{ display: "grid", gap: 12, marginTop: 14 }}>
+        {dates.map((d) => (
+          <section key={d.date} style={card}>
+            <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
+              <strong style={{ fontSize: 16 }}>{d.label}</strong>
+              <span style={{ color: "#777", fontSize: 12 }}>{d.date}</span>
+            </div>
 
-          {dates.map((d) => (
-            <div
-              key={d.date}
-              style={{
-                display: "grid",
-                gridTemplateColumns: "160px 1fr 1fr 420px",
-                padding: 12,
-                borderTop: "1px solid #eee",
-                gap: 12,
-                alignItems: "center",
-              }}
-            >
-              <div>{d.label}</div>
+            <div style={{ marginTop: 10 }}>
+              <div style={slotRowHeader}>午前</div>
+              <StatusButtons
+                value={answers[d.date]?.am?.status ?? "yes"}
+                onChange={(v) => setStatus(d.date, "am", v)}
+              />
+            </div>
 
-              {/* 午前 */}
-             <StatusButtons
-  value={answers[d.date]?.am?.status ?? "yes"}
-  onChange={(v) => setStatus(d.date, "am", v)}
-/>
+            <div style={{ marginTop: 10 }}>
+              <div style={slotRowHeader}>午後</div>
+              <StatusButtons
+                value={answers[d.date]?.pm?.status ?? "yes"}
+                onChange={(v) => setStatus(d.date, "pm", v)}
+              />
+            </div>
 
-              {/* 午後 */}
-             <StatusButtons
-  value={answers[d.date]?.pm?.status ?? "yes"}
-  onChange={(v) => setStatus(d.date, "pm", v)}
-/>
-
-
-              {/* 共通備考 */}
-              <input
+            <div style={{ marginTop: 12 }}>
+              <div style={slotRowHeader}>備考（午前・午後共通）</div>
+              <textarea
                 value={answers[d.date]?.note ?? ""}
                 onChange={(e) => setNote(d.date, e.target.value)}
                 placeholder="例：午後は途中参加 / どちらも遅れる など"
-                style={noteInput}
+                style={noteArea}
+                rows={2}
               />
             </div>
-          ))}
-        </div>
-      )}
+          </section>
+        ))}
+      </div>
 
-      <p style={{ marginTop: 10, color: "#666" }}>
+      <p style={{ marginTop: 14, color: "#666", fontSize: 13 }}>
         ※未入力は午前/午後ともにデフォルトで○表示。<br />
-        ※入力者を切り替えると、その人の既存入力が復元されます。<br />
         ※備考は日付ごとに1つで、午前側（am）に保存します。
       </p>
     </main>
   );
 }
 
-const btn: React.CSSProperties = {
-  padding: "8px 12px",
-  border: "1px solid #ddd",
-  borderRadius: 10,
-  cursor: "pointer",
-};
-
-const noteInput: React.CSSProperties = {
-  padding: "10px 12px",
-  border: "1px solid #ddd",
-  borderRadius: 10,
-  width: "100%",
-};
-
+/** でかボタン（スマホ向け） */
 function StatusButtons({
   value,
   onChange,
 }: {
-  value: "yes" | "maybe" | "no";
-  onChange: (v: "yes" | "maybe" | "no") => void;
+  value: Status;
+  onChange: (v: Status) => void;
 }) {
-  const items: { v: "yes" | "maybe" | "no"; label: string }[] = [
-    { v: "yes", label: "○" },
-    { v: "maybe", label: "△" },
-    { v: "no", label: "×" },
+  const items: { v: Status; label: string; hint: string }[] = [
+    { v: "yes", label: "○", hint: "参加" },
+    { v: "maybe", label: "△", hint: "未定" },
+    { v: "no", label: "×", hint: "不参加" },
   ];
 
   return (
@@ -336,7 +299,8 @@ function StatusButtons({
               ...(active ? segBtnActive : {}),
             }}
           >
-            <span style={{ fontSize: 18, fontWeight: 700 }}>{it.label}</span>
+            <div style={{ fontSize: 20, fontWeight: 800, lineHeight: 1 }}>{it.label}</div>
+            <div style={{ fontSize: 12, color: active ? "#111" : "#666", marginTop: 4 }}>{it.hint}</div>
           </button>
         );
       })}
@@ -344,16 +308,56 @@ function StatusButtons({
   );
 }
 
+const topBar: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  alignItems: "center",
+  justifyContent: "space-between",
+  flexWrap: "wrap",
+  padding: "10px 12px",
+  border: "1px solid #eee",
+  borderRadius: 12,
+  background: "#fff",
+};
+
+const btn: React.CSSProperties = {
+  padding: "10px 12px",
+  border: "1px solid #ddd",
+  borderRadius: 12,
+  background: "#fff",
+  cursor: "pointer",
+  touchAction: "manipulation",
+};
+
+const primaryBtn: React.CSSProperties = {
+  ...btn,
+  border: "1px solid #333",
+  fontWeight: 700,
+};
+
+const card: React.CSSProperties = {
+  border: "1px solid #e5e5e5",
+  borderRadius: 14,
+  background: "#fff",
+  padding: 12,
+};
+
+const slotRowHeader: React.CSSProperties = {
+  fontSize: 12,
+  color: "#666",
+  marginBottom: 6,
+};
+
 const segWrap: React.CSSProperties = {
-  display: "inline-flex",
-  gap: 8,
-  width: "100%",
+  display: "flex",
+  gap: 10,
 };
 
 const segBtn: React.CSSProperties = {
   flex: 1,
-  padding: "12px 0",
-  borderRadius: 12,
+  minHeight: 52,              // ✅ タップしやすい高さ
+  padding: "10px 0",
+  borderRadius: 14,
   border: "1px solid #ddd",
   background: "#fff",
   cursor: "pointer",
@@ -361,6 +365,14 @@ const segBtn: React.CSSProperties = {
 };
 
 const segBtnActive: React.CSSProperties = {
-  border: "2px solid #333",
+  border: "2px solid #111",
   background: "#f3f3f3",
+};
+
+const noteArea: React.CSSProperties = {
+  width: "100%",
+  padding: "10px 12px",
+  border: "1px solid #ddd",
+  borderRadius: 12,
+  resize: "vertical",
 };

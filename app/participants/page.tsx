@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 type Person = { id: string; name: string };
 
+
 export default function ParticipantsPage() {
   const router = useRouter();
   const [list, setList] = useState<Person[]>([]);
@@ -63,5 +64,7 @@ export default function ParticipantsPage() {
     </main>
   );
 }
+
+
 
 const btn: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 10, cursor: "pointer" };
