@@ -12,6 +12,7 @@ const mark = (s?: Status) => (s === "yes" ? "○" : s === "maybe" ? "△" : s ==
 const slotLabel = (s: Slot) => (s === "am" ? "午前" : "午後");
 const isHighlight = (yesCount: number) => yesCount >= 3;
 
+
 type Schedule = { id: string; key: string; title: string };
 type Person = { id: string; name: string };
 type DateRow = { date: string; label: string; sort_order: number | null };
@@ -32,6 +33,7 @@ export default function HomeClient() {
   const [dates, setDates] = useState<DateRow[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [responses, setResponses] = useState<RespRow[]>([]);
+  
 
   // 初回：月一覧取得
   useEffect(() => {
@@ -144,6 +146,11 @@ export default function HomeClient() {
   };
 
   const selectedSchedule = schedules.find((s) => s.key === selectedKey);
+  const heading =
+  selectedSchedule?.title
+    ? `${selectedSchedule.title}分 参加状況`
+    : "参加状況";
+
 
   if (loading) return <main style={{ padding: 24 }}>読み込み中...</main>;
   if (error) return <main style={{ padding: 24, color: "crimson" }}>エラー: {error}</main>;
@@ -151,28 +158,46 @@ export default function HomeClient() {
 
   return (
     <main style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
-      <h1 style={{ margin: "8px 0 14px" }}>集計</h1>
+      {/* 月選択（最上部） */}
+<div
+  style={{
+    display: "flex",
+    gap: 12,
+    alignItems: "center",
+    marginBottom: 10,
+    flexWrap: "wrap",
+  }}
+>
+  <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
+    月：
+    <select
+      value={selectedKey}
+      onChange={(e) => onChangeMonth(e.target.value)}
+    >
+      {schedules.map((s) => (
+        <option key={s.key} value={s.key}>
+          {s.title}
+        </option>
+      ))}
+    </select>
+  </label>
 
-      <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 14, flexWrap: "wrap" }}>
-        <label style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          月：
-          <select value={selectedKey} onChange={(e) => onChangeMonth(e.target.value)}>
-            {schedules.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.title}
-              </option>
-            ))}
-          </select>
-        </label>
+  <Link href={`/input/${selectedSchedule.key}`} style={btn}>
+    出欠を入力する
+  </Link>
 
-        <Link href={`/input/${selectedSchedule.key}`} style={btn}>
-          入力
-        </Link>
+  <Link href="/participants" style={btn}>
+    参加者の新規登録・削除
+  </Link>
+</div>
 
-        <Link href="/participants" style={btn}>
-          入力者マスタ
-        </Link>
-      </div>
+{/* 見出し */}
+<h1 style={{ margin: "4px 0 12px" }}>
+  {heading}
+</h1>
+
+
+
 
       <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflow: "auto", background: "#fff" }}>
   <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 1100 }}>

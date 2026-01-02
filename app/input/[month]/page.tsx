@@ -221,7 +221,7 @@ export default function InputPage() {
         </button>
 
         <button onClick={() => router.push(`/?month=${encodeURIComponent(monthKey)}`)} style={btn}>
-          戻る（集計）
+          戻る
         </button>
       </div>
 
@@ -243,7 +243,7 @@ export default function InputPage() {
             <strong>日付</strong>
             <strong>午前</strong>
             <strong>午後</strong>
-            <strong>備考（午前・午後共通）</strong>
+            <strong>備考</strong>
           </div>
 
           {dates.map((d) => (
@@ -261,34 +261,17 @@ export default function InputPage() {
               <div>{d.label}</div>
 
               {/* 午前 */}
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {(["yes", "maybe", "no"] as Status[]).map((st) => (
-                  <label key={`${d.date}-am-${st}`}>
-                    <input
-                      type="radio"
-                      name={`${d.date}-am`}
-                      checked={answers[d.date]?.am?.status === st}
-                      onChange={() => setStatus(d.date, "am", st)}
-                    />{" "}
-                    {markLabel(st)}
-                  </label>
-                ))}
-              </div>
+             <StatusButtons
+  value={answers[d.date]?.am?.status ?? "yes"}
+  onChange={(v) => setStatus(d.date, "am", v)}
+/>
 
               {/* 午後 */}
-              <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-                {(["yes", "maybe", "no"] as Status[]).map((st) => (
-                  <label key={`${d.date}-pm-${st}`}>
-                    <input
-                      type="radio"
-                      name={`${d.date}-pm`}
-                      checked={answers[d.date]?.pm?.status === st}
-                      onChange={() => setStatus(d.date, "pm", st)}
-                    />{" "}
-                    {markLabel(st)}
-                  </label>
-                ))}
-              </div>
+             <StatusButtons
+  value={answers[d.date]?.pm?.status ?? "yes"}
+  onChange={(v) => setStatus(d.date, "pm", v)}
+/>
+
 
               {/* 共通備考 */}
               <input
@@ -323,4 +306,61 @@ const noteInput: React.CSSProperties = {
   border: "1px solid #ddd",
   borderRadius: 10,
   width: "100%",
+};
+
+function StatusButtons({
+  value,
+  onChange,
+}: {
+  value: "yes" | "maybe" | "no";
+  onChange: (v: "yes" | "maybe" | "no") => void;
+}) {
+  const items: { v: "yes" | "maybe" | "no"; label: string }[] = [
+    { v: "yes", label: "○" },
+    { v: "maybe", label: "△" },
+    { v: "no", label: "×" },
+  ];
+
+  return (
+    <div style={segWrap} role="group" aria-label="出欠選択">
+      {items.map((it) => {
+        const active = value === it.v;
+        return (
+          <button
+            key={it.v}
+            type="button"
+            onClick={() => onChange(it.v)}
+            aria-pressed={active}
+            style={{
+              ...segBtn,
+              ...(active ? segBtnActive : {}),
+            }}
+          >
+            <span style={{ fontSize: 18, fontWeight: 700 }}>{it.label}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const segWrap: React.CSSProperties = {
+  display: "inline-flex",
+  gap: 8,
+  width: "100%",
+};
+
+const segBtn: React.CSSProperties = {
+  flex: 1,
+  padding: "12px 0",
+  borderRadius: 12,
+  border: "1px solid #ddd",
+  background: "#fff",
+  cursor: "pointer",
+  touchAction: "manipulation",
+};
+
+const segBtnActive: React.CSSProperties = {
+  border: "2px solid #333",
+  background: "#f3f3f3",
 };
