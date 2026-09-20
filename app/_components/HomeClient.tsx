@@ -139,7 +139,17 @@ export default function HomeClient() {
     return c;
   }, [dateKeys, responses]);
 
-  const onChangeMonth = (key: string) => {
+  // ○人数が最多の枠（1人以上、同数は全て対象）
+  const maxYes = useMemo(() => {
+    let max = 0;
+    for (const d of dateKeys) {
+      max = Math.max(max, counts[d.date]?.am?.yes ?? 0, counts[d.date]?.pm?.yes ?? 0);
+    }
+    return max;
+  }, [dateKeys, counts]);
+  const isBest = (yesCount: number) => maxYes > 0 && yesCount === maxYes;
+
+  const onChangeMonth =(key: string) => {
     setSelectedKey(key);
     router.push(`/?month=${encodeURIComponent(key)}`);
     router.refresh(); // 要件：再読み込み
@@ -231,10 +241,10 @@ export default function HomeClient() {
           const yesPm = counts[d.date]?.pm?.yes ?? 0;
           return [
             <th key={`${d.date}-am`} style={{ ...th, ...(isHighlight(yesAm) ? hi : {}) }}>
-              午前
+              午前{isBest(yesAm) && " ★"}
             </th>,
             <th key={`${d.date}-pm`} style={{ ...th, ...(isHighlight(yesPm) ? hi : {}) }}>
-              午後
+              午後{isBest(yesPm) && " ★"}
             </th>,
           ];
         })}
@@ -281,10 +291,10 @@ export default function HomeClient() {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
           const yesPm = counts[d.date]?.pm?.yes ?? 0;
           return [
-            <td key={`${d.date}-am-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesAm) ? hi : {}) }}>
+            <td key={`${d.date}-am-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesAm) ? hi : {}), ...(isBest(yesAm) ? best : {}) }}>
               {yesAm}
             </td>,
-            <td key={`${d.date}-pm-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesPm) ? hi : {}) }}>
+            <td key={`${d.date}-pm-yes`} style={{ ...td, fontWeight: 700, ...(isHighlight(yesPm) ? hi : {}), ...(isBest(yesPm) ? best : {}) }}>
               {yesPm}
             </td>,
           ];
@@ -317,7 +327,8 @@ export default function HomeClient() {
 
       <p style={{ marginTop: 10, color: "#666" }}>
         ※セルの備考はホバーで確認できます。<br />
-        ※○人数が3人以上の枠は黄色でハイライトされます（午前/午後それぞれ判定）。
+        ※○人数が3人以上の枠は黄色でハイライトされます（午前/午後それぞれ判定）。<br />
+        ※○人数が最も多い枠には★が付きます（同数の場合は全て）。
       </p>
     </main>
   );
@@ -327,3 +338,4 @@ const th: React.CSSProperties = { borderBottom: "1px solid #eee", padding: "10px
 const td: React.CSSProperties = { borderBottom: "1px solid #f2f2f2", padding: "10px 12px", textAlign: "center", whiteSpace: "nowrap" };
 const btn: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none", color: "inherit" };
 const hi: React.CSSProperties = { backgroundColor: "#fff3bf" };
+const best: React.CSSProperties = { outline: "2px solid #f08c00", outlineOffset: -2 };
