@@ -33,7 +33,10 @@ export default function HomeClient() {
   const [dates, setDates] = useState<DateRow[]>([]);
   const [people, setPeople] = useState<Person[]>([]);
   const [responses, setResponses] = useState<RespRow[]>([]);
-  
+
+  // タップで表示する備考（スマホはホバーできないため）
+  const [activeNote, setActiveNote] = useState<{ label: string; text: string } | null>(null);
+
 
   // 初回：月一覧取得
   useEffect(() => {
@@ -214,7 +217,7 @@ export default function HomeClient() {
     <thead>
       {/* 1段目：日付（午前午後をまとめる） */}
       <tr style={{ background: "var(--surface-muted)" }}>
-        <th style={th} rowSpan={2}>名前</th>
+        <th style={{ ...th, ...stickyCorner }} rowSpan={2}>名前</th>
 
         {dateKeys.map((d) => {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
@@ -225,7 +228,7 @@ export default function HomeClient() {
           return (
             <th
               key={d.date}
-              style={{ ...th, ...(dateHi ? hi : {}) }}
+              style={{ ...th, ...stickyTopRow1, ...(dateHi ? hi : {}) }}
               colSpan={2}
             >
               {d.label}
@@ -240,10 +243,10 @@ export default function HomeClient() {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
           const yesPm = counts[d.date]?.pm?.yes ?? 0;
           return [
-            <th key={`${d.date}-am`} style={{ ...th, ...(isHighlight(yesAm) ? hi : {}) }}>
+            <th key={`${d.date}-am`} style={{ ...th, ...stickyTopRow2, ...(isHighlight(yesAm) ? hi : {}) }}>
               午前{isBest(yesAm) && " ★"}
             </th>,
-            <th key={`${d.date}-pm`} style={{ ...th, ...(isHighlight(yesPm) ? hi : {}) }}>
+            <th key={`${d.date}-pm`} style={{ ...th, ...stickyTopRow2, ...(isHighlight(yesPm) ? hi : {}) }}>
               午後{isBest(yesPm) && " ★"}
             </th>,
           ];
@@ -254,7 +257,7 @@ export default function HomeClient() {
     <tbody>
       {people.map((p) => (
         <tr key={p.id}>
-          <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>{p.name}</td>
+          <td style={{ ...td, fontWeight: 700, textAlign: "left", ...stickyLeft }}>{p.name}</td>
 
           {dateKeys.flatMap((d) => {
             const cellAm = matrix[p.id]?.[d.date]?.am;
@@ -263,20 +266,27 @@ export default function HomeClient() {
             const yesAm = counts[d.date]?.am?.yes ?? 0;
             const yesPm = counts[d.date]?.pm?.yes ?? 0;
 
+            const noteAm = cellAm?.note ?? "";
+            const notePm = cellPm?.note ?? "";
+
             return [
               <td
                 key={`${p.id}-${d.date}-am`}
-                style={{ ...td, ...(isHighlight(yesAm) ? hi : {}) }}
-                title={cellAm?.note ?? ""}
+                style={{ ...td, ...(isHighlight(yesAm) ? hi : {}), ...(noteAm ? tappable : {}) }}
+                title={noteAm}
+                onClick={() => noteAm && setActiveNote({ label: `${p.name}／${d.label}／午前`, text: noteAm })}
               >
                 {mark(cellAm?.status)}
+                {noteAm && <sup style={noteMark}>※</sup>}
               </td>,
               <td
                 key={`${p.id}-${d.date}-pm`}
-                style={{ ...td, ...(isHighlight(yesPm) ? hi : {}) }}
-                title={cellPm?.note ?? ""}
+                style={{ ...td, ...(isHighlight(yesPm) ? hi : {}), ...(notePm ? tappable : {}) }}
+                title={notePm}
+                onClick={() => notePm && setActiveNote({ label: `${p.name}／${d.label}／午後`, text: notePm })}
               >
                 {mark(cellPm?.status)}
+                {notePm && <sup style={noteMark}>※</sup>}
               </td>,
             ];
           })}
@@ -286,7 +296,7 @@ export default function HomeClient() {
 
     <tfoot>
       <tr style={{ background: "var(--surface-muted-2)" }}>
-        <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>○人数</td>
+        <td style={{ ...td, fontWeight: 700, textAlign: "left", ...stickyLeft, background: "var(--surface-muted-2)" }}>○人数</td>
         {dateKeys.flatMap((d) => {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
           const yesPm = counts[d.date]?.pm?.yes ?? 0;
@@ -302,7 +312,7 @@ export default function HomeClient() {
       </tr>
 
       <tr style={{ background: "var(--surface-muted-2)" }}>
-        <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>△人数</td>
+        <td style={{ ...td, fontWeight: 700, textAlign: "left", ...stickyLeft, background: "var(--surface-muted-2)" }}>△人数</td>
         {dateKeys.flatMap((d) => {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
           const yesPm = counts[d.date]?.pm?.yes ?? 0;
@@ -322,10 +332,20 @@ export default function HomeClient() {
   </table>
 </div>
       <p style={{ marginTop: 10, color: "var(--muted-text)" }}>
-        ※セルの備考はホバーで確認できます。<br />
+        ※備考があるセルには「※」が付きます。タップ（またはホバー）で内容を確認できます。<br />
         ※○人数が3人以上の枠は黄色でハイライトされます（午前/午後それぞれ判定）。<br />
         ※○人数が最も多い枠には★が付きます（同数の場合は全て）。
       </p>
+
+      {activeNote && (
+        <div style={noteToastWrap} onClick={() => setActiveNote(null)}>
+          <div style={noteToast}>
+            <strong>{activeNote.label}</strong>
+            <div style={{ marginTop: 4 }}>{activeNote.text}</div>
+            <div style={{ marginTop: 6, fontSize: 11, color: "var(--muted-text)" }}>（タップで閉じる）</div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
@@ -335,3 +355,37 @@ const td: React.CSSProperties = { borderBottom: "1px solid var(--border-soft)", 
 const btn: React.CSSProperties = { padding: "8px 12px", border: "1px solid var(--border-input)", borderRadius: 10, textDecoration: "none", color: "inherit" };
 const hi: React.CSSProperties = { backgroundColor: "var(--highlight-bg)" };
 const best: React.CSSProperties = { outline: "2px solid var(--accent-border)", outlineOffset: -2 };
+
+// ヘッダー1行分の高さ（2段目のsticky位置の基準に使う。th/tdのpaddingと概ね合わせている）
+const HEADER_ROW_H = 41;
+
+// スマホの横スクロールでも名前列・ヘッダーが見えるようにするsticky設定
+const stickyLeft: React.CSSProperties = { position: "sticky", left: 0, zIndex: 1, background: "var(--surface)" };
+const stickyTopRow1: React.CSSProperties = { position: "sticky", top: 0, zIndex: 2, background: "var(--surface-muted)" };
+const stickyTopRow2: React.CSSProperties = { position: "sticky", top: HEADER_ROW_H, zIndex: 2, background: "var(--surface-muted)" };
+const stickyCorner: React.CSSProperties = { position: "sticky", left: 0, top: 0, zIndex: 3, background: "var(--surface-muted)" };
+
+// 備考ありセル：タップ可能な見た目
+const tappable: React.CSSProperties = { cursor: "pointer" };
+const noteMark: React.CSSProperties = { marginLeft: 2, fontSize: 10, color: "var(--accent-border)" };
+
+const noteToastWrap: React.CSSProperties = {
+  position: "fixed",
+  inset: 0,
+  background: "rgba(0,0,0,0.35)",
+  display: "flex",
+  alignItems: "flex-end",
+  justifyContent: "center",
+  padding: 16,
+  zIndex: 50,
+};
+const noteToast: React.CSSProperties = {
+  maxWidth: 420,
+  width: "100%",
+  background: "var(--surface)",
+  border: "1px solid var(--border)",
+  borderRadius: 14,
+  padding: "14px 16px",
+  boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+  marginBottom: "env(safe-area-inset-bottom, 0px)",
+};
