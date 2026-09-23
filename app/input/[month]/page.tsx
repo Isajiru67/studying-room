@@ -206,8 +206,9 @@ export default function InputPage() {
     position: sticky;
     bottom: 0;
     padding: 10px 12px env(safe-area-inset-bottom);
-    background: rgba(255, 255, 255, 0.95);
-    border-top: 1px solid #eee;
+    background: var(--surface);
+    opacity: 0.98;
+    border-top: 1px solid var(--border-soft);
     margin-top: 16px;
   }
         @media (min-width: 768px) {
@@ -254,14 +255,14 @@ export default function InputPage() {
         </div>
       </div>
 
-      {msg && <p style={{ color: "crimson", marginTop: 10 }}>{msg}</p>}
+      {msg && <p style={{ color: "var(--danger)", marginTop: 10 }}>{msg}</p>}
       {loading && <p style={{ marginTop: 10 }}>読み込み中...</p>}
 
       {/* 入力者未選択時：ここで止める */}
       {!loading && !participantId && (
         <div style={hintBox}>
           <strong>最初に「入力者」を選択してください</strong>
-          <div style={{ marginTop: 6, color: "#666", fontSize: 13 }}>
+          <div style={{ marginTop: 6, color: "var(--muted-text)", fontSize: 13 }}>
             入力者を選ぶと、その人の過去入力が読み込まれて編集できるようになります。
           </div>
         </div>
@@ -272,13 +273,13 @@ export default function InputPage() {
         <>
           {/* ===== PC（元の表形式） ===== */}
           <div className="desktopOnly" style={{ marginTop: 14 }}>
-            <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflowX: "auto", background: "#fff" }}>
+            <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflowX: "auto", background: "var(--surface)" }}>
               <div
                 style={{
                   display: "grid",
                   gridTemplateColumns: "160px 1fr 1fr 420px",
                   padding: 12,
-                  background: "#f7f7f7",
+                  background: "var(--surface-muted)",
                   gap: 12,
                   minWidth: 980,
                 }}
@@ -296,7 +297,7 @@ export default function InputPage() {
                     display: "grid",
                     gridTemplateColumns: "160px 1fr 1fr 420px",
                     padding: 12,
-                    borderTop: "1px solid #eee",
+                    borderTop: "1px solid var(--border-soft)",
                     gap: 12,
                     alignItems: "center",
                     minWidth: 980,
@@ -334,7 +335,7 @@ export default function InputPage() {
                 <section key={d.date} style={card}>
                   <div style={{ display: "flex", justifyContent: "space-between", gap: 12, alignItems: "baseline" }}>
                     <strong style={{ fontSize: 16 }}>{d.label}</strong>
-                    <span style={{ color: "#777", fontSize: 12 }}>{d.date}</span>
+                    <span style={{ color: "var(--muted-text-soft)", fontSize: 12 }}>{d.date}</span>
                   </div>
 
                   <div style={{ marginTop: 10 }}>
@@ -370,7 +371,7 @@ export default function InputPage() {
             </div>
           </div>
 
-          <p style={{ marginTop: 14, color: "#666", fontSize: 13 }}>
+          <p style={{ marginTop: 14, color: "var(--muted-text)", fontSize: 13 }}>
             ※未入力は午前/午後ともにデフォルトで○表示。<br />
             ※備考は日付ごとに1つで、午前側（am）に保存します。
           </p>
@@ -385,9 +386,9 @@ export default function InputPage() {
       width: "100%",
       padding: "14px 16px",
       borderRadius: 14,
-      border: "1px solid #111",
-      background: "#111",
-      color: "#fff",
+      border: "1px solid var(--primary-bg)",
+      background: "var(--primary-bg)",
+      color: "var(--primary-text)",
       fontSize: 16,
       fontWeight: 700,
     }}
@@ -435,7 +436,7 @@ function StatusButtons({
             <div style={{ fontSize: size === "lg" ? 20 : 18, fontWeight: 800, lineHeight: 1 }}>
               {it.label}
             </div>
-            <div style={{ fontSize: 12, color: active ? "#111" : "#666", marginTop: 4 }}>{it.hint}</div>
+            <div style={{ fontSize: 12, color: active ? "var(--active-text)" : "var(--muted-text)", marginTop: 4 }}>{it.hint}</div>
           </button>
         );
       })}
@@ -451,44 +452,45 @@ const topBar: React.CSSProperties = {
   justifyContent: "space-between",
   flexWrap: "wrap",
   padding: "10px 12px",
-  border: "1px solid #eee",
+  border: "1px solid var(--border-soft)",
   borderRadius: 12,
-  background: "#fff",
+  background: "var(--surface)",
 };
 
 const btn: React.CSSProperties = {
   padding: "10px 12px",
-  border: "1px solid #ddd",
+  border: "1px solid var(--border-input)",
   borderRadius: 12,
-  background: "#fff",
+  background: "var(--surface)",
+  color: "var(--foreground)",
   cursor: "pointer",
   touchAction: "manipulation",
 };
 
 const primaryBtn: React.CSSProperties = {
   ...btn,
-  border: "1px solid #333",
+  border: "1px solid var(--active-border)",
   fontWeight: 700,
 };
 
 const hintBox: React.CSSProperties = {
   marginTop: 14,
   padding: "12px 14px",
-  border: "1px solid #e5e5e5",
+  border: "1px solid var(--border)",
   borderRadius: 12,
-  background: "#fff",
+  background: "var(--surface)",
 };
 
 const card: React.CSSProperties = {
-  border: "1px solid #e5e5e5",
+  border: "1px solid var(--border)",
   borderRadius: 14,
-  background: "#fff",
+  background: "var(--surface)",
   padding: 12,
 };
 
 const slotLabel: React.CSSProperties = {
   fontSize: 12,
-  color: "#666",
+  color: "var(--muted-text)",
   marginBottom: 6,
 };
 
@@ -502,8 +504,9 @@ const segBtnLg: React.CSSProperties = {
   minHeight: 56, // スマホで押しやすい
   padding: "10px 0",
   borderRadius: 14,
-  border: "1px solid #ddd",
-  background: "#fff",
+  border: "1px solid var(--border-input)",
+  background: "var(--surface)",
+  color: "var(--foreground)",
   cursor: "pointer",
   touchAction: "manipulation",
 };
@@ -513,28 +516,33 @@ const segBtnMd: React.CSSProperties = {
   minHeight: 44,
   padding: "8px 0",
   borderRadius: 12,
-  border: "1px solid #ddd",
-  background: "#fff",
+  border: "1px solid var(--border-input)",
+  background: "var(--surface)",
+  color: "var(--foreground)",
   cursor: "pointer",
   touchAction: "manipulation",
 };
 
 const segBtnActive: React.CSSProperties = {
-  border: "2px solid #111",
-  background: "#f3f3f3",
+  border: "2px solid var(--active-border)",
+  background: "var(--active-bg)",
 };
 
 const noteInput: React.CSSProperties = {
   padding: "10px 12px",
-  border: "1px solid #ddd",
+  border: "1px solid var(--border-input)",
   borderRadius: 12,
+  background: "var(--surface)",
+  color: "var(--foreground)",
   width: "100%",
 };
 
 const noteArea: React.CSSProperties = {
   width: "100%",
   padding: "10px 12px",
-  border: "1px solid #ddd",
+  border: "1px solid var(--border-input)",
   borderRadius: 12,
+  background: "var(--surface)",
+  color: "var(--foreground)",
   resize: "vertical",
 };

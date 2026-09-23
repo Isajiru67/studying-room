@@ -209,11 +209,11 @@ export default function HomeClient() {
 
 
 
-      <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflow: "auto", background: "#fff" }}>
+      <div style={{ border: "1px solid var(--border)", borderRadius: 12, overflow: "auto", background: "var(--surface)" }}>
   <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 1100 }}>
     <thead>
       {/* 1段目：日付（午前午後をまとめる） */}
-      <tr style={{ background: "#f7f7f7" }}>
+      <tr style={{ background: "var(--surface-muted)" }}>
         <th style={th} rowSpan={2}>名前</th>
 
         {dateKeys.map((d) => {
@@ -235,7 +235,7 @@ export default function HomeClient() {
       </tr>
 
       {/* 2段目：午前/午後 */}
-      <tr style={{ background: "#f7f7f7" }}>
+      <tr style={{ background: "var(--surface-muted)" }}>
         {dateKeys.flatMap((d) => {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
           const yesPm = counts[d.date]?.pm?.yes ?? 0;
@@ -285,7 +285,7 @@ export default function HomeClient() {
     </tbody>
 
     <tfoot>
-      <tr style={{ background: "#fafafa" }}>
+      <tr style={{ background: "var(--surface-muted-2)" }}>
         <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>○人数</td>
         {dateKeys.flatMap((d) => {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
@@ -301,7 +301,7 @@ export default function HomeClient() {
         })}
       </tr>
 
-      <tr style={{ background: "#fafafa" }}>
+      <tr style={{ background: "var(--surface-muted-2)" }}>
         <td style={{ ...td, fontWeight: 700, textAlign: "left" }}>△人数</td>
         {dateKeys.flatMap((d) => {
           const yesAm = counts[d.date]?.am?.yes ?? 0;
@@ -321,11 +321,7 @@ export default function HomeClient() {
     </tfoot>
   </table>
 </div>
-<div style={{ border: "1px solid #e5e5e5", borderRadius: 12, overflow: "auto", background: "#fff" }}>
-        
-      </div>
-
-      <p style={{ marginTop: 10, color: "#666" }}>
+      <p style={{ marginTop: 10, color: "var(--muted-text)" }}>
         ※セルの備考はホバーで確認できます。<br />
         ※○人数が3人以上の枠は黄色でハイライトされます（午前/午後それぞれ判定）。<br />
         ※○人数が最も多い枠には★が付きます（同数の場合は全て）。
@@ -334,8 +330,8 @@ export default function HomeClient() {
   );
 }
 
-const th: React.CSSProperties = { borderBottom: "1px solid #eee", padding: "10px 12px", textAlign: "center", whiteSpace: "nowrap" };
-const td: React.CSSProperties = { borderBottom: "1px solid #f2f2f2", padding: "10px 12px", textAlign: "center", whiteSpace: "nowrap" };
-const btn: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 10, textDecoration: "none", color: "inherit" };
-const hi: React.CSSProperties = { backgroundColor: "#fff3bf" };
-const best: React.CSSProperties = { outline: "2px solid #f08c00", outlineOffset: -2 };
+const th: React.CSSProperties = { borderBottom: "1px solid var(--border-soft)", padding: "10px 12px", textAlign: "center", whiteSpace: "nowrap" };
+const td: React.CSSProperties = { borderBottom: "1px solid var(--border-soft)", padding: "10px 12px", textAlign: "center", whiteSpace: "nowrap" };
+const btn: React.CSSProperties = { padding: "8px 12px", border: "1px solid var(--border-input)", borderRadius: 10, textDecoration: "none", color: "inherit" };
+const hi: React.CSSProperties = { backgroundColor: "var(--highlight-bg)" };
+const best: React.CSSProperties = { outline: "2px solid var(--accent-border)", outlineOffset: -2 };

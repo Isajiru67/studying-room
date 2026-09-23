@@ -45,21 +45,21 @@ export default function ParticipantsPage() {
       <h1 style={{ margin: "8px 0 14px" }}>参加者の新規登録・削除</h1>
 
       <div style={{ display: "flex", gap: 10, alignItems: "center", marginBottom: 14 }}>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="名前を追加" style={{ flex: 1, padding: "10px 12px", border: "1px solid #ddd", borderRadius: 10 }} />
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="名前を追加" style={{ flex: 1, padding: "10px 12px", border: "1px solid var(--border-input)", borderRadius: 10, background: "var(--surface)", color: "var(--foreground)" }} />
         <button onClick={add} style={btn}>追加</button>
         <button onClick={() => router.push("/")} style={btn}>戻る</button>
       </div>
 
-      {msg && <p style={{ color: "crimson" }}>{msg}</p>}
+      {msg && <p style={{ color: "var(--danger)" }}>{msg}</p>}
 
-      <div style={{ border: "1px solid #e5e5e5", borderRadius: 12, background: "#fff" }}>
+      <div style={{ border: "1px solid var(--border)", borderRadius: 12, background: "var(--surface)" }}>
         {list.map((p) => (
-          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, borderTop: "1px solid #eee" }}>
+          <div key={p.id} style={{ display: "flex", justifyContent: "space-between", padding: 12, borderTop: "1px solid var(--border-soft)" }}>
             <span>{p.name}</span>
             <button onClick={() => remove(p.id)} style={btn}>削除</button>
           </div>
         ))}
-        {!list.length && <div style={{ padding: 12, color: "#666" }}>まだ登録がありません。</div>}
+        {!list.length && <div style={{ padding: 12, color: "var(--muted-text)" }}>まだ登録がありません。</div>}
       </div>
     </main>
   );
@@ -67,4 +67,4 @@ export default function ParticipantsPage() {
 
 
 
-const btn: React.CSSProperties = { padding: "8px 12px", border: "1px solid #ddd", borderRadius: 10, cursor: "pointer" };
+const btn: React.CSSProperties = { padding: "8px 12px", border: "1px solid var(--border-input)", borderRadius: 10, background: "var(--surface)", color: "var(--foreground)", cursor: "pointer" };
