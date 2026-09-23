@@ -202,6 +202,10 @@ export default function HomeClient() {
   <Link href="/participants" style={btn}>
     参加者の新規登録・削除
   </Link>
+
+  <Link href="/schedules/new" style={btn}>
+    月のカレンダーを登録
+  </Link>
 </div>
 
 {/* 見出し */}
